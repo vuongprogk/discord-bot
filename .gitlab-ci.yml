@@ -51,16 +51,8 @@ deploy:
   stage: deploy
   image: vuongprogk/deploy:v1-alpine
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
-      changes:
-        - "*.js"
-        - "*.ts"
-        - "*.json"
-        - "Dockerfile"
-        - "commands/**/*"
-      when: on_success
     - if: $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH
-      when: manual
+      when: on_success
   needs:
     - job: build
       artifacts: false
