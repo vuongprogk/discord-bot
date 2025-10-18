@@ -13,6 +13,7 @@ FROM base AS deps
 # Copy only dependency files for maximum cache hit rate
 COPY package.json bun.lock ./
 COPY prisma ./prisma/
+RUN apt-get update -y && apt-get install -y openssl
 
 # Install with cache mount - MUCH faster on rebuilds
 # Use --ignore-scripts for security and speed, but run postinstall manually for Prisma
@@ -27,6 +28,12 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 
 # Final stage - minimal production image
 FROM base AS release
+
+# Install OpenSSL (required by Prisma at runtime)
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy production dependencies (includes generated Prisma Client)
 COPY --from=deps /usr/src/app/node_modules ./node_modules
