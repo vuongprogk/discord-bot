@@ -1,25 +1,33 @@
+# Advanced Dockerfile with maximum caching optimization
 # Use specific version for reproducibility
 FROM oven/bun:1.2.23-slim AS base
 WORKDIR /usr/src/app
 
-# Install stage - production dependencies only
-FROM base AS install
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+# Dependencies stage - heavily cached
+FROM base AS deps
 
-# Build stage (if needed for future TypeScript compilation)
-FROM base AS build
+# Enable BuildKit cache mount for bun install
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    mkdir -p /root/.bun/install/cache
+
+# Copy only dependency files for maximum cache hit rate
 COPY package.json bun.lock ./
-COPY --from=install /usr/src/app/node_modules ./node_modules
-COPY . .
+
+# Install with cache mount - MUCH faster on rebuilds
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install \
+    --frozen-lockfile \
+    --production \
+    --no-progress \
+    --no-summary
 
 # Final stage - minimal production image
 FROM base AS release
 
 # Copy production dependencies
-COPY --from=install /usr/src/app/node_modules ./node_modules
+COPY --from=deps /usr/src/app/node_modules ./node_modules
 
-# Copy application files
+# Copy application files (these change more often)
 COPY --chown=bun:bun package.json ./
 COPY --chown=bun:bun index.ts ./
 COPY --chown=bun:bun instrumentation.ts ./

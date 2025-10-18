@@ -10,6 +10,8 @@ variables:
   FF_USE_FASTZIP: "true"
   ARTIFACT_COMPRESSION_LEVEL: "fast"
   CACHE_COMPRESSION_LEVEL: "fast"
+  DOCKER_BUILDKIT: "1"
+  BUILDKIT_INLINE_CACHE: "1"
 
 build:
   stage: build
@@ -19,11 +21,16 @@ build:
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   cache:
-    - key: "docker-cache"
+    - key: "bun-${CI_COMMIT_REF_SLUG}"
+      paths:
+        - .bun-cache/
+      policy: pull-push
+    - key: "docker-${CI_COMMIT_REF_SLUG}"
       paths:
         - .docker-cache/
+      policy: pull-push
   before_script:
-    - mkdir -p ~/.docker
+    - mkdir -p ~/.docker .bun-cache
     - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > ~/.docker/config.json
   script:
     - |
@@ -31,12 +38,11 @@ build:
         --frontend dockerfile.v0 \
         --local context=. \
         --local dockerfile=. \
-        --export-cache type=registry,ref=$IMAGE_CACHE \
+        --opt build-arg:BUN_INSTALL_CACHE_DIR=/tmp/.bun-cache \
+        --export-cache type=registry,ref=$IMAGE_CACHE,mode=min,compression=zstd \
         --import-cache type=registry,ref=$IMAGE_CACHE \
-        --output type=image,name=$IMAGE_TAG,push=true \
-        --output type=image,name=$IMAGE_LATEST,push=true
-
-    - mv .docker-cache-new .docker-cache
+        --output type=image,name=$IMAGE_TAG,push=true,compression=zstd \
+        --output type=image,name=$IMAGE_LATEST,push=true,compression=zstd
   only:
     - main
 

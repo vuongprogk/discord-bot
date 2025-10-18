@@ -1,0 +1,26 @@
+# Bun configuration for faster installs and better performance
+
+[install]
+# Use a global cache directory
+cache = ".bun-cache"
+
+# Reduce network requests
+registry = "https://registry.npmjs.org/"
+
+# Optimize install performance
+frozenLockfile = true
+production = false  # Set to true in Dockerfile
+dryRun = false
+
+# Parallel downloads
+concurrency = 10
+
+# Cache settings
+cacheFolder = ".bun-cache"
+
+[install.scopes]
+# Add any scoped registries here if needed
+
+[run]
+# Faster startup
+bun = true
