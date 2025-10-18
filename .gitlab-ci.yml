@@ -20,47 +20,29 @@ variables:
 
 build:
   stage: build
-  image: vuongprogk/build:v1-alpine
-  services:
-    - name: docker:28.3.0-dind-alpine3.22
-      command: ["--host=tcp://0.0.0.0:2375"]
+  image: 
+    name: moby/buildkit:buildx-stable-1-rootless
+    entrypoint: [""]
   variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_DRIVER: overlay2
-    DOCKER_BUILDKIT: 1
-
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   cache:
     - key: "docker-cache"
       paths:
         - .docker-cache/
   before_script:
-    - echo "🔧 Waiting for Docker daemon..."
-    - |
-      for i in $(seq 1 30); do
-        if docker info >/dev/null 2>&1; then
-          echo "✅ Docker is ready!"
-          break
-        fi
-        echo "⏳ Waiting..."
-        sleep 2
-      done
-    - echo "$REGISTRY_PASS" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
-    - docker pull "$IMAGE_CACHE" || true
+    - mkdir -p ~/.docker
+    - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > ~/.docker/config.json
   script:
-    - docker buildx create --use
     - |
-      docker buildx build \
-        --platform=linux/amd64 \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        --cache-from=type=registry,ref=$IMAGE_CACHE \
-        --cache-from=type=local,src=.docker-cache \
-        --cache-to=type=registry,ref=$IMAGE_CACHE,mode=min,oci-mediatypes=true \
-        --cache-to=type=local,dest=.docker-cache-new,mode=max \
-        --tag $IMAGE_TAG \
-        --tag $IMAGE_LATEST \
-        --push \
-        -f ./Dockerfile .
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=. \
+        --local dockerfile=./Dockerfile \
+        --export-cache type=registry,ref=$IMAGE_CACHE \
+        --import-cache type=registry,ref=$IMAGE_CACHE \
+        --output type=image,name=$IMAGE_TAG,push=true \
+        --output type=image,name=$IMAGE_LATEST,push=true
+
     - mv .docker-cache-new .docker-cache
   only:
     - main
