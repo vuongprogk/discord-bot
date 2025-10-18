@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client, Events, GatewayIntentBits, Collection, MessageFlags  } from 'discord.js';
 import logger from './logger.ts';
+import { initDatabase } from './database.ts';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,17 @@ declare module 'discord.js' {
 
 logger.info('OpenTelemetry SDK started - exporting to: ' + (process.env.OTEL_ENDPOINT || ''));
 logger.info('Starting Discord bot application...');
+
+// Initialize database
+(async () => {
+	try {
+		await initDatabase();
+		logger.info('Database initialized successfully');
+	} catch (error) {
+		logger.error('Failed to initialize database:', error);
+		process.exit(1);
+	}
+})();
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
