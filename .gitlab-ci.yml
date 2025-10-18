@@ -42,10 +42,18 @@ security-scan:
     TRIVY_NON_SSL: "true"
     TRIVY_NO_PROGRESS: "true"
     TRIVY_CACHE_DIR: .trivycache
+  # Cache Trivy database to speed up subsequent scans
+  cache:
+    key: trivy-db
+    paths:
+      - .trivycache/
+    policy: pull-push
   before_script:
     - apk add --no-cache jq
-    - mkdir -p ~/.docker
+    - mkdir -p ~/.docker .trivycache
     - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > ~/.docker/config.json
+    # Download DB only if not cached
+    - trivy image --download-db-only || echo "DB already cached"
   script:
     - echo "Running security scan on $IMAGE_TAG"
     - trivy image --format table --exit-code 0 --severity HIGH,CRITICAL "$IMAGE_TAG" || true
