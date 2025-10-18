@@ -8,6 +8,9 @@
     "@types/winston": "^2.4.4",
     "eslint": "^9.38.0"
   },
+  "scripts": {
+    "start": "bun run deploy-commands.js && bun run index.ts"
+  },
   "peerDependencies": {
     "typescript": "^5"
   },
