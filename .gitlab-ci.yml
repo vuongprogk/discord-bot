@@ -44,7 +44,7 @@ deploy:
   script:
     - |
       export APP_NAME="${CI_PROJECT_NAME//_/-}"
-      export REPLICAS=1
+      export REPLICAS=2
 
       echo "Deploying: $CI_PROJECT_NAME"
       export IMAGE_TAG=$IMAGE_TAG
