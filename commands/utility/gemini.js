@@ -118,7 +118,7 @@ module.exports = {
 
 async function handleChat(interaction) {
   const prompt = interaction.options.getString("prompt");
-  const modelName = interaction.options.getString("model") || "gemini-1.5-flash";
+  const modelName = interaction.options.getString("model") || "gemini-2.0-flash";
 
   const model = genAI.getGenerativeModel({ model: modelName });
 
