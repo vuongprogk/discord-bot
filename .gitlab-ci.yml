@@ -2,12 +2,7 @@
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
       changes:
-        - "*.js"
-        - "*.ts"
-        - "*.json"
-        - "Dockerfile"
-        - "commands/**/*"
-      when: always
+        - "cluster-worker-home/*"
 stages:
   - build
   - deploy
@@ -37,20 +32,27 @@ build:
       buildctl-daemonless.sh build \
         --frontend dockerfile.v0 \
         --local context=. \
-        --local dockerfile=. \
+        --local dockerfile=./cluster-worker-home \
+        --opt filename=Dockerfile \
         --export-cache type=registry,ref=$IMAGE_CACHE,mode=max,compression=zstd,oci-mediatypes=true \
         --import-cache type=registry,ref=$IMAGE_CACHE \
         --output type=image,name=$IMAGE_TAG,push=true,compression=zstd,oci-mediatypes=true \
         --output type=image,name=$IMAGE_LATEST,push=true,compression=zstd,oci-mediatypes=true
+  allow_failure: false
 
 
 deploy:
   stage: deploy
   image: vuongprogk/deploy:v1-alpine
   rules:
-    - !reference [.default_rules, rules]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
+      changes:
+        - "cluster-worker-home/*"
+      when: on_success
   needs:
-    - build
+    - job: build
+      artifacts: false
+  allow_failure: false
   before_script:
     - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
     - export KUBECONFIG=$PWD/kubeconfig
