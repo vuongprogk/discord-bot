@@ -24,7 +24,9 @@ module.exports = {
             .setName("model")
             .setDescription("Choose Gemini model")
             .addChoices(
-              { name: "Gemini 2.0 Flash", value: "gemini-2.0-flash" }
+              { name: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+              { name: "Gemini 2.0 Flash Lite", value: "gemini-2.0-flash-lite" },
+              { name: "Gemini 2.5 Pro", value: "gemini-2.5-pro" }
             )
         )
     )
@@ -170,7 +172,7 @@ async function handleImage(interaction) {
   // Get the image mime type
   const mimeType = attachment.contentType;
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const result = await model.generateContent([
     prompt,
@@ -201,7 +203,7 @@ async function handleCode(interaction) {
   const question = interaction.options.getString("question");
   const language = interaction.options.getString("language") || "general";
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const codePrompt = `You are a helpful coding assistant. The user is asking about ${language} programming.
 
