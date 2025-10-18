@@ -2,7 +2,11 @@
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
       changes:
-        - "cluster-worker-home/*"
+        - "*.js"
+        - "*.ts"
+        - "*.json"
+        - "Dockerfile"
+        - "commands/**/*"
 stages:
   - build
   - deploy
@@ -47,7 +51,11 @@ deploy:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
       changes:
-        - "cluster-worker-home/*"
+        - "*.js"
+        - "*.ts"
+        - "*.json"
+        - "Dockerfile"
+        - "commands/**/*"
       when: on_success
   needs:
     - job: build
