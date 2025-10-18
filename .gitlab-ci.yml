@@ -1,3 +1,13 @@
+.default_rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
+      changes:
+        - "*.js"
+        - "*.ts"
+        - "*.json"
+        - "Dockerfile"
+        - "commands/**/*"
+      when: always
 stages:
   - build
   - deploy
@@ -17,6 +27,8 @@ build:
     entrypoint: [""]
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  rules:
+    - !reference [.default_rules, rules]
   before_script:
     - mkdir -p ~/.docker
     - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > ~/.docker/config.json
@@ -30,20 +42,13 @@ build:
         --import-cache type=registry,ref=$IMAGE_CACHE \
         --output type=image,name=$IMAGE_TAG,push=true,compression=zstd,oci-mediatypes=true \
         --output type=image,name=$IMAGE_LATEST,push=true,compression=zstd,oci-mediatypes=true
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
-      changes:
-        - "*.js"
-        - "*.ts"
-        - "*.json"
-        - "Dockerfile"
-        - "commands/**/*"
-  when: always
 
 
 deploy:
   stage: deploy
   image: vuongprogk/deploy:v1-alpine
+  rules:
+    - !reference [.default_rules, rules]
   needs:
     - build
   before_script:
@@ -68,6 +73,5 @@ deploy:
         exit 1
       }
       exit 0
-  only:
-    - main
+
 
