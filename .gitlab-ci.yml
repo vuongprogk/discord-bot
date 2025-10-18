@@ -59,6 +59,8 @@ deploy:
         - "Dockerfile"
         - "commands/**/*"
       when: on_success
+    - if: $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH
+      when: manual
   needs:
     - job: build
       artifacts: false
