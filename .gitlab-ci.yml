@@ -7,7 +7,7 @@
         - "*.json"
         - "Dockerfile"
         - "commands/**/*"
-    - if: $CI_DEFAULT_BRANCH != $CI_COMMIT_BRANCH
+    - if: $CI_DEFAULT_BRANCH == $CI_COMMIT_BRANCH
       when: manual
 stages:
   - build
