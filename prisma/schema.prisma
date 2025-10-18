@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Expense tracking model
+model Expense {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id") @db.VarChar(255)
+  guildId     String   @map("guild_id") @db.VarChar(255)
+  amount      Decimal  @db.Decimal(10, 2)
+  category    String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, guildId], name: "idx_expenses_user_guild")
+  @@index([createdAt(sort: Desc)], name: "idx_expenses_created_at")
+  @@map("expenses")
+}
+
+// Budget management model
+model Budget {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.VarChar(255)
+  guildId   String   @map("guild_id") @db.VarChar(255)
+  category  String   @db.VarChar(100)
+  amount    Decimal  @db.Decimal(10, 2)
+  period    String   @default("monthly") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, guildId, category, period], name: "budgets_user_guild_category_period_unique")
+  @@map("budgets")
+}
+
+// Todo list model
+model Todo {
+  id          Int       @id @default(autoincrement())
+  userId      String    @map("user_id") @db.VarChar(255)
+  guildId     String    @map("guild_id") @db.VarChar(255)
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  completed   Boolean   @default(false)
+  priority    String    @default("medium") @db.VarChar(20)
+  dueDate     DateTime? @map("due_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId, guildId], name: "idx_todos_user_guild")
+  @@index([completed], name: "idx_todos_completed")
+  @@map("todos")
+}
+

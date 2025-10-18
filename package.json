@@ -9,7 +9,14 @@
     "eslint": "^9.38.0"
   },
   "scripts": {
-    "start": "bun run deploy-commands.js && bun run index.ts"
+    "start": "bun run deploy-commands.js && bun run index.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "postinstall": "prisma generate"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -28,8 +35,9 @@
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@opentelemetry/winston-transport": "^0.17.0",
+    "@prisma/client": "^6.17.1",
     "discord.js": "^14.23.2",
-    "pg": "^8.16.3",
+    "prisma": "^6.17.1",
     "winston": "^3.18.3"
   }
 }

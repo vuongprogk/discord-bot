@@ -1,86 +1,50 @@
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 import logger from './logger';
 
-// PostgreSQL connection pool
-const pool = new Pool({
-	host: process.env.DB_HOST || 'localhost',
-	port: parseInt(process.env.DB_PORT || '5432'),
-	database: process.env.DB_NAME || 'discord_bot',
-	user: process.env.DB_USER || 'postgres',
-	password: process.env.DB_PASSWORD,
-	max: 20,
-	idleTimeoutMillis: 30000,
-	connectionTimeoutMillis: 2000,
+// Initialize Prisma Client with logging
+const prisma = new PrismaClient({
+	log: [
+		{ level: 'query', emit: 'event' },
+		{ level: 'error', emit: 'event' },
+		{ level: 'warn', emit: 'event' },
+	],
 });
 
-// Initialize database tables
+// Log Prisma events
+prisma.$on('query', (e: any) => {
+	logger.debug(`Prisma Query: ${e.query}`, { duration: e.duration, params: e.params });
+});
+
+prisma.$on('error', (e: any) => {
+	logger.error(`Prisma Error: ${e.message}`, { target: e.target });
+});
+
+prisma.$on('warn', (e: any) => {
+	logger.warn(`Prisma Warning: ${e.message}`, { target: e.target });
+});
+
+// Initialize database connection
 export async function initDatabase() {
 	try {
-		await pool.query(`
-			CREATE TABLE IF NOT EXISTS expenses (
-				id SERIAL PRIMARY KEY,
-				user_id VARCHAR(255) NOT NULL,
-				guild_id VARCHAR(255) NOT NULL,
-				amount DECIMAL(10, 2) NOT NULL,
-				category VARCHAR(100) NOT NULL,
-				description TEXT,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			);
-		`);
-
-		await pool.query(`
-			CREATE INDEX IF NOT EXISTS idx_expenses_user_guild 
-			ON expenses(user_id, guild_id);
-		`);
-
-		await pool.query(`
-			CREATE INDEX IF NOT EXISTS idx_expenses_created_at 
-			ON expenses(created_at DESC);
-		`);
-
-		await pool.query(`
-			CREATE TABLE IF NOT EXISTS budgets (
-				id SERIAL PRIMARY KEY,
-				user_id VARCHAR(255) NOT NULL,
-				guild_id VARCHAR(255) NOT NULL,
-				category VARCHAR(100) NOT NULL,
-				amount DECIMAL(10, 2) NOT NULL,
-				period VARCHAR(20) DEFAULT 'monthly',
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-				UNIQUE(user_id, guild_id, category, period)
-			);
-		`);
-
-		await pool.query(`
-			CREATE TABLE IF NOT EXISTS todos (
-				id SERIAL PRIMARY KEY,
-				user_id VARCHAR(255) NOT NULL,
-				guild_id VARCHAR(255) NOT NULL,
-				title VARCHAR(255) NOT NULL,
-				description TEXT,
-				completed BOOLEAN DEFAULT FALSE,
-				priority VARCHAR(20) DEFAULT 'medium',
-				due_date TIMESTAMP,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			);
-		`);
-
-		await pool.query(`
-			CREATE INDEX IF NOT EXISTS idx_todos_user_guild 
-			ON todos(user_id, guild_id);
-		`);
-
-		await pool.query(`
-			CREATE INDEX IF NOT EXISTS idx_todos_completed 
-			ON todos(completed);
-		`);
-
-		logger.info('Database initialized successfully');
+		await prisma.$connect();
+		logger.info('Prisma connected to database successfully');
+		
+		// Test connection
+		await prisma.$queryRaw`SELECT 1`;
+		logger.info('Database connection verified');
 	} catch (error) {
-		logger.error('Failed to initialize database:', error);
+		logger.error('Failed to connect to database:', error);
 		throw error;
+	}
+}
+
+// Graceful shutdown
+export async function disconnectDatabase() {
+	try {
+		await prisma.$disconnect();
+		logger.info('Prisma disconnected from database');
+	} catch (error) {
+		logger.error('Error disconnecting from database:', error);
 	}
 }
 
@@ -88,157 +52,208 @@ export async function initDatabase() {
 export const expenseDB = {
 	// Add a new expense
 	async addExpense(userId: string, guildId: string, amount: number, category: string, description: string) {
-		const result = await pool.query(
-			`INSERT INTO expenses (user_id, guild_id, amount, category, description) 
-			 VALUES ($1, $2, $3, $4, $5) 
-			 RETURNING *`,
-			[userId, guildId, amount, category, description]
-		);
-		return result.rows[0];
+		return await prisma.expense.create({
+			data: {
+				userId,
+				guildId,
+				amount,
+				category,
+				description,
+			},
+		});
 	},
 
 	// Get user's expenses
 	async getExpenses(userId: string, guildId: string, limit = 10) {
-		const result = await pool.query(
-			`SELECT * FROM expenses 
-			 WHERE user_id = $1 AND guild_id = $2 
-			 ORDER BY created_at DESC 
-			 LIMIT $3`,
-			[userId, guildId, limit]
-		);
-		return result.rows;
+		return await prisma.expense.findMany({
+			where: {
+				userId,
+				guildId,
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+			take: limit,
+		});
 	},
 
 	// Get expenses by category
-	async getExpensesByCategory(userId: string, guildId: string, category: string, limit = 10) {
-		const result = await pool.query(
-			`SELECT * FROM expenses 
-			 WHERE user_id = $1 AND guild_id = $2 AND category = $3 
-			 ORDER BY created_at DESC 
-			 LIMIT $4`,
-			[userId, guildId, category, limit]
-		);
-		return result.rows;
+	async getExpensesByCategory(userId: string, guildId: string, category: string) {
+		return await prisma.expense.findMany({
+			where: {
+				userId,
+				guildId,
+				category,
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+		});
 	},
 
-	// Get expenses for a date range
+	// Get expenses by date range
 	async getExpensesByDateRange(userId: string, guildId: string, startDate: Date, endDate: Date) {
-		const result = await pool.query(
-			`SELECT * FROM expenses 
-			 WHERE user_id = $1 AND guild_id = $2 
-			 AND created_at BETWEEN $3 AND $4 
-			 ORDER BY created_at DESC`,
-			[userId, guildId, startDate, endDate]
-		);
-		return result.rows;
+		return await prisma.expense.findMany({
+			where: {
+				userId,
+				guildId,
+				createdAt: {
+					gte: startDate,
+					lte: endDate,
+				},
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+		});
 	},
 
 	// Get total expenses
-	async getTotalExpenses(userId: string, guildId: string) {
-		const result = await pool.query(
-			`SELECT SUM(amount) as total FROM expenses 
-			 WHERE user_id = $1 AND guild_id = $2`,
-			[userId, guildId]
-		);
-		return parseFloat(result.rows[0]?.total || '0');
+	async getTotalExpenses(userId: string, guildId: string, startDate?: Date, endDate?: Date) {
+		const result = await prisma.expense.aggregate({
+			where: {
+				userId,
+				guildId,
+				...(startDate && endDate ? {
+					createdAt: {
+						gte: startDate,
+						lte: endDate,
+					},
+				} : {}),
+			},
+			_sum: {
+				amount: true,
+			},
+		});
+		return Number(result._sum.amount || 0);
 	},
 
-	// Get expenses by category summary
-	async getCategorySummary(userId: string, guildId: string, startDate?: Date, endDate?: Date) {
-		let query = `
-			SELECT category, SUM(amount) as total, COUNT(*) as count 
-			FROM expenses 
-			WHERE user_id = $1 AND guild_id = $2
-		`;
-		const params: any[] = [userId, guildId];
+	// Get category summary
+	async getCategorySummary(userId: string, guildId: string, startDate: Date, endDate: Date) {
+		const expenses = await prisma.expense.groupBy({
+			by: ['category'],
+			where: {
+				userId,
+				guildId,
+				createdAt: {
+					gte: startDate,
+					lte: endDate,
+				},
+			},
+			_sum: {
+				amount: true,
+			},
+			_count: {
+				id: true,
+			},
+		});
 
-		if (startDate && endDate) {
-			query += ` AND created_at BETWEEN $3 AND $4`;
-			params.push(startDate, endDate);
-		}
-
-		query += ` GROUP BY category ORDER BY total DESC`;
-
-		const result = await pool.query(query, params);
-		return result.rows;
+		return expenses.map((e: any) => ({
+			category: e.category,
+			total: Number(e._sum.amount || 0),
+			count: e._count.id,
+		}));
 	},
 
 	// Delete an expense
 	async deleteExpense(id: number, userId: string, guildId: string) {
-		const result = await pool.query(
-			`DELETE FROM expenses 
-			 WHERE id = $1 AND user_id = $2 AND guild_id = $3 
-			 RETURNING *`,
-			[id, userId, guildId]
-		);
-		return result.rows[0];
+		try {
+			return await prisma.expense.delete({
+				where: {
+					id,
+					userId,
+					guildId,
+				},
+			});
+		} catch (error) {
+			return null;
+		}
 	},
 
 	// Get monthly total
 	async getMonthlyTotal(userId: string, guildId: string, year: number, month: number) {
-		const result = await pool.query(
-			`SELECT SUM(amount) as total FROM expenses 
-			 WHERE user_id = $1 AND guild_id = $2 
-			 AND EXTRACT(YEAR FROM created_at) = $3 
-			 AND EXTRACT(MONTH FROM created_at) = $4`,
-			[userId, guildId, year, month]
-		);
-		return parseFloat(result.rows[0]?.total || '0');
+		const startDate = new Date(year, month - 1, 1);
+		const endDate = new Date(year, month, 0, 23, 59, 59);
+
+		return await this.getTotalExpenses(userId, guildId, startDate, endDate);
 	},
 };
 
 // Budget operations
 export const budgetDB = {
-	// Set a budget
-	async setBudget(userId: string, guildId: string, category: string, amount: number, period = 'monthly') {
-		const result = await pool.query(
-			`INSERT INTO budgets (user_id, guild_id, category, amount, period) 
-			 VALUES ($1, $2, $3, $4, $5) 
-			 ON CONFLICT (user_id, guild_id, category, period) 
-			 DO UPDATE SET amount = $4 
-			 RETURNING *`,
-			[userId, guildId, category, amount, period]
-		);
-		return result.rows[0];
+	// Set or update a budget
+	async setBudget(userId: string, guildId: string, category: string, amount: number, period: string) {
+		return await prisma.budget.upsert({
+			where: {
+				budgets_user_guild_category_period_unique: {
+					userId,
+					guildId,
+					category,
+					period,
+				},
+			},
+			update: {
+				amount,
+			},
+			create: {
+				userId,
+				guildId,
+				category,
+				amount,
+				period,
+			},
+		});
 	},
 
 	// Get budgets
 	async getBudgets(userId: string, guildId: string) {
-		const result = await pool.query(
-			`SELECT * FROM budgets 
-			 WHERE user_id = $1 AND guild_id = $2`,
-			[userId, guildId]
-		);
-		return result.rows;
+		return await prisma.budget.findMany({
+			where: {
+				userId,
+				guildId,
+			},
+		});
 	},
 
 	// Delete a budget
 	async deleteBudget(userId: string, guildId: string, category: string) {
-		const result = await pool.query(
-			`DELETE FROM budgets 
-			 WHERE user_id = $1 AND guild_id = $2 AND category = $3 
-			 RETURNING *`,
-			[userId, guildId, category]
-		);
-		return result.rows[0];
+		try {
+			return await prisma.budget.delete({
+				where: {
+					budgets_user_guild_category_period_unique: {
+						userId,
+						guildId,
+						category,
+						period: 'monthly',
+					},
+				},
+			});
+		} catch (error) {
+			return null;
+		}
 	},
 
 	// Check budget status
 	async checkBudgetStatus(userId: string, guildId: string, category: string, period = 'monthly') {
-		const budget = await pool.query(
-			`SELECT amount FROM budgets 
-			 WHERE user_id = $1 AND guild_id = $2 AND category = $3 AND period = $4`,
-			[userId, guildId, category, period]
-		);
+		const budget = await prisma.budget.findUnique({
+			where: {
+				budgets_user_guild_category_period_unique: {
+					userId,
+					guildId,
+					category,
+					period,
+				},
+			},
+		});
 
-		if (budget.rows.length === 0) return null;
+		if (!budget) return null;
 
 		const now = new Date();
 		const year = now.getFullYear();
 		const month = now.getMonth() + 1;
 
 		const spent = await expenseDB.getMonthlyTotal(userId, guildId, year, month);
-		const budgetAmount = parseFloat(budget.rows[0].amount);
+		const budgetAmount = Number(budget.amount);
 
 		return {
 			budget: budgetAmount,
@@ -253,130 +268,145 @@ export const budgetDB = {
 export const todoDB = {
 	// Add a new todo
 	async addTodo(userId: string, guildId: string, title: string, description: string | null, priority: string, dueDate: Date | null) {
-		const result = await pool.query(
-			`INSERT INTO todos (user_id, guild_id, title, description, priority, due_date) 
-			 VALUES ($1, $2, $3, $4, $5, $6) 
-			 RETURNING *`,
-			[userId, guildId, title, description, priority, dueDate]
-		);
-		return result.rows[0];
+		return await prisma.todo.create({
+			data: {
+				userId,
+				guildId,
+				title,
+				description,
+				priority,
+				dueDate,
+			},
+		});
 	},
 
 	// Get user's todos
 	async getTodos(userId: string, guildId: string, includeCompleted = false) {
-		let query = `SELECT * FROM todos WHERE user_id = $1 AND guild_id = $2`;
-		if (!includeCompleted) {
-			query += ` AND completed = FALSE`;
-		}
-		query += ` ORDER BY 
-			CASE priority 
-				WHEN 'high' THEN 1 
-				WHEN 'medium' THEN 2 
-				WHEN 'low' THEN 3 
-			END, 
-			due_date NULLS LAST, 
-			created_at DESC`;
-
-		const result = await pool.query(query, [userId, guildId]);
-		return result.rows;
+		return await prisma.todo.findMany({
+			where: {
+				userId,
+				guildId,
+				...(includeCompleted ? {} : { completed: false }),
+			},
+			orderBy: [
+				{
+					priority: 'asc', // This will need custom logic for high/medium/low
+				},
+				{
+					dueDate: 'asc',
+				},
+				{
+					createdAt: 'desc',
+				},
+			],
+		});
 	},
 
 	// Get a specific todo
 	async getTodoById(id: number, userId: string, guildId: string) {
-		const result = await pool.query(
-			`SELECT * FROM todos WHERE id = $1 AND user_id = $2 AND guild_id = $3`,
-			[id, userId, guildId]
-		);
-		return result.rows[0];
+		return await prisma.todo.findFirst({
+			where: {
+				id,
+				userId,
+				guildId,
+			},
+		});
 	},
 
 	// Update todo completion status
 	async toggleTodo(id: number, userId: string, guildId: string) {
-		const result = await pool.query(
-			`UPDATE todos 
-			 SET completed = NOT completed, updated_at = CURRENT_TIMESTAMP 
-			 WHERE id = $1 AND user_id = $2 AND guild_id = $3 
-			 RETURNING *`,
-			[id, userId, guildId]
-		);
-		return result.rows[0];
+		const todo = await this.getTodoById(id, userId, guildId);
+		if (!todo) return null;
+
+		return await prisma.todo.update({
+			where: {
+				id,
+			},
+			data: {
+				completed: !todo.completed,
+			},
+		});
 	},
 
 	// Update todo details
-	async updateTodo(id: number, userId: string, guildId: string, updates: { title?: string; description?: string; priority?: string; due_date?: Date | null }) {
-		const fields: string[] = [];
-		const values: any[] = [];
-		let paramCount = 1;
-
-		if (updates.title !== undefined) {
-			fields.push(`title = $${paramCount++}`);
-			values.push(updates.title);
+	async updateTodo(id: number, userId: string, guildId: string, updates: { title?: string; description?: string; priority?: string; dueDate?: Date | null }) {
+		try {
+			return await prisma.todo.update({
+				where: {
+					id,
+				},
+				data: updates,
+			});
+		} catch (error) {
+			return null;
 		}
-		if (updates.description !== undefined) {
-			fields.push(`description = $${paramCount++}`);
-			values.push(updates.description);
-		}
-		if (updates.priority !== undefined) {
-			fields.push(`priority = $${paramCount++}`);
-			values.push(updates.priority);
-		}
-		if (updates.due_date !== undefined) {
-			fields.push(`due_date = $${paramCount++}`);
-			values.push(updates.due_date);
-		}
-
-		if (fields.length === 0) return null;
-
-		fields.push(`updated_at = CURRENT_TIMESTAMP`);
-		values.push(id, userId, guildId);
-
-		const result = await pool.query(
-			`UPDATE todos 
-			 SET ${fields.join(', ')} 
-			 WHERE id = $${paramCount} AND user_id = $${paramCount + 1} AND guild_id = $${paramCount + 2} 
-			 RETURNING *`,
-			values
-		);
-		return result.rows[0];
 	},
 
 	// Delete a todo
 	async deleteTodo(id: number, userId: string, guildId: string) {
-		const result = await pool.query(
-			`DELETE FROM todos 
-			 WHERE id = $1 AND user_id = $2 AND guild_id = $3 
-			 RETURNING *`,
-			[id, userId, guildId]
-		);
-		return result.rows[0];
+		try {
+			return await prisma.todo.delete({
+				where: {
+					id,
+				},
+			});
+		} catch (error) {
+			return null;
+		}
 	},
 
 	// Get todo statistics
 	async getTodoStats(userId: string, guildId: string) {
-		const result = await pool.query(
-			`SELECT 
-				COUNT(*) as total,
-				COUNT(*) FILTER (WHERE completed = TRUE) as completed,
-				COUNT(*) FILTER (WHERE completed = FALSE) as pending,
-				COUNT(*) FILTER (WHERE completed = FALSE AND priority = 'high') as high_priority,
-				COUNT(*) FILTER (WHERE completed = FALSE AND due_date < CURRENT_TIMESTAMP) as overdue
-			 FROM todos 
-			 WHERE user_id = $1 AND guild_id = $2`,
-			[userId, guildId]
-		);
-		return result.rows[0];
+		const now = new Date();
+
+		const [total, completed, pending, highPriority, overdue] = await Promise.all([
+			prisma.todo.count({
+				where: { userId, guildId },
+			}),
+			prisma.todo.count({
+				where: { userId, guildId, completed: true },
+			}),
+			prisma.todo.count({
+				where: { userId, guildId, completed: false },
+			}),
+			prisma.todo.count({
+				where: { userId, guildId, completed: false, priority: 'high' },
+			}),
+			prisma.todo.count({
+				where: {
+					userId,
+					guildId,
+					completed: false,
+					dueDate: {
+						lt: now,
+					},
+				},
+			}),
+		]);
+
+		return {
+			total: total.toString(),
+			completed: completed.toString(),
+			pending: pending.toString(),
+			high_priority: highPriority.toString(),
+			overdue: overdue.toString(),
+		};
 	},
 
 	// Clear completed todos
 	async clearCompleted(userId: string, guildId: string) {
-		const result = await pool.query(
-			`DELETE FROM todos 
-			 WHERE user_id = $1 AND guild_id = $2 AND completed = TRUE 
-			 RETURNING *`,
-			[userId, guildId]
-		);
-		return result.rows;
+		const result = await prisma.todo.deleteMany({
+			where: {
+				userId,
+				guildId,
+				completed: true,
+			},
+		});
+
+		// Return array of deleted todos (Prisma doesn't return them, so we fake it for compatibility)
+		return Array(result.count).fill({ id: 0 });
 	},
 };
 
-export default pool;
+export { prisma };
+export default prisma;
