@@ -39,12 +39,8 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
     logger.info(
       `Started refreshing ${commands.length} application (/) commands.`
     );
-    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [] });
-    logger.info("Successfully deleted all application commands.");
 
-    await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: [] });
-    logger.info('Successfully deleted all guild commands.');
-    const data = await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
+    const data = await rest.put(Routes.applicationCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
     logger.info(
       `Successfully reloaded ${data.length} application (/) commands.`
     );
