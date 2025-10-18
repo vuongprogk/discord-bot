@@ -22,7 +22,7 @@ for (const folder of commandFolders) {
     if ("data" in command && "execute" in command) {
       commands.push(command.data.toJSON());
     } else {
-      console.log(
+      logger.warn(
         `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
       );
     }
@@ -32,27 +32,21 @@ for (const folder of commandFolders) {
 // Construct and prepare an instance of the REST module
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
+rest
+  .put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [] })
+  .then(() => logger.info("Successfully deleted all application commands."))
+  .catch(logger.error);
 // and deploy your commands!
 (async () => {
   try {
     logger.info(
       `Started refreshing ${commands.length} application (/) commands.`
     );
-
-    // The put method is used to fully refresh all commands in the guild with the current set
-    const data = await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
-      { body: commands }
-    );
-
+    const data = await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
     logger.info(
       `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {
-    // And of course, make sure you catch and log any errors!
     logger.error(error);
   }
 })();

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ${APP_NAME}-app-config
+  namespace: ${NAMESPACE}
+data:
+  appsettings.Production.json: |
+    {
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information",
+          "Microsoft.AspNetCore": "Warning"
+        }
+      },
+      "ConnectionStrings": {
+        "DefaultConnection": "Server=mydb;Database=myapp;User Id=myuser;Password=mypassword;"
+      },
+      "Jwt": {
+        "Key": "super-secret-key",
+        "Issuer": "my-app",
+        "Audience": "my-users"
+      }
+    }

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+  annotations:
+   secrets.phase.dev/redeploy: 'true'
+spec:
+  replicas: ${REPLICAS}
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      containers:
+        - name: ${APP_NAME}
+          image: ${IMAGE_TAG}
+          envFrom:
+            - secretRef:
+                name: ${APP_NAME}-app-config
+#          env:
+#            - name: ASPNETCORE_ENVIRONMENT
+#              value: Production
+#          ports:
+#            - containerPort: ${CONTAINER_PORT}
+          imagePullPolicy: Always
+#          volumeMounts:
+#            - name: config-volume
+#              mountPath: /app/appsettings.Production.json
+#              subPath: appsettings.Production.json
+#      volumes:
+#        - name: config-volume
+#          configMap:
+#            name: ${APP_NAME}-app-config

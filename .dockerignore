@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+
+# Git
+.git
+.gitignore
+.gitlab-ci.yml
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# IDE
+.vscode
+.idea
+.editorconfig
+
+# Environment and secrets
+.env
+.env.*
+
+# Build outputs
+coverage*
+*.log
+logs/
+
+# Kubernetes/Helm
+k8s/
+helm-charts/
+
+# CI/CD
+.github/
+
+# Misc
+Makefile
+.DS_Store
+*.swp
+*.swo
+*~
