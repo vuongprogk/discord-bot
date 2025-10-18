@@ -11,6 +11,14 @@ A feature-rich Discord bot built with Discord.js, Bun runtime, and PostgreSQL, f
 - **Comprehensive reports** - View expenses by period (month/year/all-time) with category breakdowns
 - **PostgreSQL storage** - Reliable database with connection pooling
 
+### ✅ Productivity & Todo Lists
+- **Private todo lists** - Personal task management for each user
+- **Priority levels** - High, Medium, and Low priority tasks
+- **Due dates** - Set deadlines with overdue warnings
+- **Statistics tracking** - Completion rates and progress visualization
+- **Smart sorting** - Automatically sorted by priority and due date
+- **Bulk operations** - Clear completed todos, view statistics
+
 ### 🛡️ Moderation Commands
 - `/clear` - Bulk delete messages
 - `/kick` - Remove users from the server
@@ -132,6 +140,52 @@ All expense commands are **completely private** - responses are only visible to 
 /expense-delete id:123
 ```
 
+## Todo List Usage
+
+All todo commands are **completely private** - responses are only visible to you (ephemeral messages).
+
+### Adding Todos
+```
+# Basic todo
+/todo-add title:Fix the bug
+
+# With priority
+/todo-add title:Review PR priority:high
+
+# With description and due date
+/todo-add title:Prepare presentation priority:high description:Quarterly review due_date:2025-10-25
+
+# With specific time
+/todo-add title:Team meeting due_date:2025-10-20 14:00
+```
+
+### Viewing Todos
+```
+# View pending todos (default)
+/todo-list
+
+# Include completed todos
+/todo-list show_completed:true
+```
+
+### Managing Todos
+```
+# Mark as complete/incomplete (toggle)
+/todo-complete id:5
+
+# View detailed information
+/todo-view id:5
+
+# Delete a todo
+/todo-delete id:5
+
+# Clear all completed todos
+/todo-clear
+
+# View statistics
+/todo-stats
+```
+
 ## Docker Support
 
 ### Build Image
@@ -166,6 +220,7 @@ GitLab CI/CD pipeline includes:
 discord-bot/
 ├── commands/
 │   ├── finance/          # Expense tracker commands
+│   ├── productivity/     # Todo list commands
 │   ├── fun/              # Entertainment commands
 │   ├── moderation/       # Admin commands
 │   └── info/             # Utility commands
@@ -185,11 +240,12 @@ discord-bot/
 4. Run `bun run deploy-commands.js` to register
 
 ### Database Schema
-The expense tracker uses two main tables:
-- `expenses` - Stores individual expense records
-- `budgets` - Stores user budget configurations
+The bot uses three main tables:
+- `expenses` - Stores individual expense records with categories and amounts
+- `budgets` - Stores user budget configurations per category
+- `todos` - Stores personal todo items with priority, due dates, and completion status
 
-Tables include proper indexes on `(user_id, guild_id)` and `created_at` for performance.
+Tables include proper indexes on `(user_id, guild_id)`, `created_at`, and `completed` for optimal query performance.
 
 ## Tech Stack
 
