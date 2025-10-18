@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,7 +15,7 @@ module.exports = {
 		const message = interaction.options.getString('message');
 		const useEmbed = interaction.options.getBoolean('embed') || false;
 
-		await interaction.reply({ content: '✅ Message sent!', ephemeral: true });
+		await interaction.reply({ content: '✅ Message sent!', flags: MessageFlags.Ephemeral });
 
 		if (useEmbed) {
 			const { EmbedBuilder } = require('discord.js');

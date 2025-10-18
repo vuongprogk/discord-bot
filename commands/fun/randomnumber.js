@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -17,7 +17,7 @@ module.exports = {
 		const max = interaction.options.getInteger('max') || 100;
 
 		if (min >= max) {
-			return interaction.reply({ content: '❌ Minimum must be less than maximum!', ephemeral: true });
+			return interaction.reply({ content: '❌ Minimum must be less than maximum!', flags: MessageFlags.Ephemeral });
 		}
 
 		const random = Math.floor(Math.random() * (max - min + 1)) + min;

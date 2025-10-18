@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -18,11 +18,11 @@ module.exports = {
 		const member = interaction.guild.members.cache.get(target.id);
 
 		if (!member) {
-			return interaction.reply({ content: '❌ User not found in this server!', ephemeral: true });
+			return interaction.reply({ content: '❌ User not found in this server!', flags: MessageFlags.Ephemeral });
 		}
 
 		if (!member.bannable) {
-			return interaction.reply({ content: '❌ I cannot ban this user!', ephemeral: true });
+			return interaction.reply({ content: '❌ I cannot ban this user!', flags: MessageFlags.Ephemeral });
 		}
 
 		try {
@@ -30,7 +30,7 @@ module.exports = {
 			await interaction.reply(`🔨 Successfully banned ${target.tag}\n**Reason:** ${reason}`);
 		} catch (error) {
 			console.error(error);
-			await interaction.reply({ content: '❌ Failed to ban the user!', ephemeral: true });
+			await interaction.reply({ content: '❌ Failed to ban the user!', flags: MessageFlags.Ephemeral });
 		}
 	},
 };

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -18,13 +18,13 @@ module.exports = {
 			await interaction.channel.bulkDelete(amount, true);
 			await interaction.reply({ 
 				content: `🗑️ Successfully deleted ${amount} messages!`, 
-				ephemeral: true 
+				flags: MessageFlags.Ephemeral
 			});
 		} catch (error) {
 			console.error(error);
 			await interaction.reply({ 
 				content: '❌ There was an error trying to clear messages in this channel!', 
-				ephemeral: true 
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	},
