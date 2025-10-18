@@ -1,0 +1,32 @@
+{
+  "name": "discord-bot",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/winston": "^2.4.4",
+    "eslint": "^9.38.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.65.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "^0.206.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.206.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.206.0",
+    "@opentelemetry/instrumentation-winston": "^0.51.0",
+    "@opentelemetry/resources": "^2.1.0",
+    "@opentelemetry/sdk-logs": "^0.206.0",
+    "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.206.0",
+    "@opentelemetry/sdk-trace-node": "^2.1.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@opentelemetry/winston-transport": "^0.17.0",
+    "discord.js": "^14.23.2",
+    "install": "^0.13.0",
+    "winston": "^3.18.3"
+  }
+}
