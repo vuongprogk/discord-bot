@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const logger = require("../../logger");
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -98,12 +97,21 @@ module.exports = {
         await handleCode(interaction);
       }
     } catch (error) {
-      logger.error("Error in Gemini command:", error);
+      console.error("Error in Gemini command:", error);
       
       const errorMessage = error.message || "An unknown error occurred";
-      await interaction.editReply({
-        content: `❌ Error: ${errorMessage}`,
-      });
+      
+      // Check if we can still reply
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({
+          content: `❌ Error: ${errorMessage}`,
+        });
+      } else {
+        await interaction.reply({
+          content: `❌ Error: ${errorMessage}`,
+          ephemeral: true,
+        });
+      }
     }
   },
 };
@@ -114,7 +122,7 @@ async function handleChat(interaction) {
 
   const model = genAI.getGenerativeModel({ model: modelName });
 
-  logger.info(`Gemini chat request from ${interaction.user.tag}: ${prompt.substring(0, 50)}...`);
+  console.log(`Gemini chat request from ${interaction.user.tag}: ${prompt.substring(0, 50)}...`);
 
   const result = await model.generateContent(prompt);
   const response = result.response;
@@ -152,7 +160,7 @@ async function handleImage(interaction) {
     });
   }
 
-  logger.info(`Gemini image analysis from ${interaction.user.tag}: ${attachment.url}`);
+  console.log(`Gemini image analysis from ${interaction.user.tag}: ${attachment.url}`);
 
   // Download image
   const imageResponse = await fetch(attachment.url);
@@ -201,7 +209,7 @@ Question: ${question}
 
 Please provide a clear, concise answer with code examples if applicable. Format code blocks properly with markdown.`;
 
-  logger.info(`Gemini code help from ${interaction.user.tag}: ${question.substring(0, 50)}...`);
+  console.log(`Gemini code help from ${interaction.user.tag}: ${question.substring(0, 50)}...`);
 
   const result = await model.generateContent(codePrompt);
   const response = result.response;
