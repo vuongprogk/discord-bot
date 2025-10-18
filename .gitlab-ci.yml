@@ -7,6 +7,8 @@
         - "*.json"
         - "Dockerfile"
         - "commands/**/*"
+    - if: $CI_DEFAULT_BRANCH != $CI_COMMIT_BRANCH
+      when: manual
 stages:
   - build
   - deploy
@@ -36,7 +38,7 @@ build:
       buildctl-daemonless.sh build \
         --frontend dockerfile.v0 \
         --local context=. \
-        --local dockerfile=./cluster-worker-home \
+        --local dockerfile=. \
         --opt filename=Dockerfile \
         --export-cache type=registry,ref=$IMAGE_CACHE,mode=max,compression=zstd,oci-mediatypes=true \
         --import-cache type=registry,ref=$IMAGE_CACHE \
