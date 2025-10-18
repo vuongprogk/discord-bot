@@ -3,17 +3,10 @@ stages:
   - security
   - deploy
 variables:
-  SECRET_DETECTION_ENABLED: 'true'
   IMAGE_REPO: $REGISTRY_USER/$CI_PROJECT_NAME
   IMAGE_TAG: $REGISTRY/$REGISTRY_USER/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA
   IMAGE_LATEST: $REGISTRY/$REGISTRY_USER/$CI_PROJECT_NAME:latest
   IMAGE_CACHE: $REGISTRY/$REGISTRY_USER/$CI_PROJECT_NAME:buildcache
-  DOCKER_BUILDKIT: 1
-  BUILDKIT_PROGRESS: auto
-  DOCKER_CLI_EXPERIMENTAL: enabled
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_DRIVER: overlay2
   FF_USE_FASTZIP: "true"
   ARTIFACT_COMPRESSION_LEVEL: "fast"
   CACHE_COMPRESSION_LEVEL: "fast"
@@ -37,7 +30,7 @@ build:
       buildctl-daemonless.sh build \
         --frontend dockerfile.v0 \
         --local context=. \
-        --local dockerfile=./Dockerfile \
+        --local dockerfile=. \
         --export-cache type=registry,ref=$IMAGE_CACHE \
         --import-cache type=registry,ref=$IMAGE_CACHE \
         --output type=image,name=$IMAGE_TAG,push=true \
