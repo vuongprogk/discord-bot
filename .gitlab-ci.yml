@@ -30,8 +30,16 @@ build:
         --import-cache type=registry,ref=$IMAGE_CACHE \
         --output type=image,name=$IMAGE_TAG,push=true,compression=zstd,oci-mediatypes=true \
         --output type=image,name=$IMAGE_LATEST,push=true,compression=zstd,oci-mediatypes=true
-  only:
-    - main
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
+      changes:
+        - "*.js"
+        - "*.ts"
+        - "*.json"
+        - "Dockerfile"
+        - "commands/**/*"
+  when: always
+
 
 deploy:
   stage: deploy
