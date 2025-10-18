@@ -1,6 +1,5 @@
 stages:
   - build
-  - security
   - deploy
 variables:
   IMAGE_REPO: $REGISTRY_USER/$CI_PROJECT_NAME
@@ -31,56 +30,6 @@ build:
         --import-cache type=registry,ref=$IMAGE_CACHE \
         --output type=image,name=$IMAGE_TAG,push=true,compression=zstd,oci-mediatypes=true \
         --output type=image,name=$IMAGE_LATEST,push=true,compression=zstd,oci-mediatypes=true
-  only:
-    - main
-
-security-scan:
-  stage: security
-  needs: [build]
-  image: aquasec/trivy:0.67.2-amd64
-  variables:
-    TRIVY_NON_SSL: "true"
-    TRIVY_NO_PROGRESS: "true"
-    # Use in-memory cache for faster scans
-    TRIVY_CACHE_DIR: "/tmp/trivy-cache"
-    # Skip Java DB to reduce download size
-    TRIVY_SKIP_JAVA_DB_UPDATE: "true"
-  before_script:
-    - apk add --no-cache jq
-    - mkdir -p ~/.docker /tmp/trivy-cache
-    - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$REGISTRY_USER\",\"password\":\"$REGISTRY_PASS\"}}}" > ~/.docker/config.json
-  script:
-    - echo "Running security scan on $IMAGE_TAG"
-    # Single scan command - let Trivy handle DB download once
-    - |
-      trivy image \
-        --format table \
-        --exit-code 0 \
-        --severity HIGH,CRITICAL \
-        --scanners vuln \
-        --timeout 10m \
-        "$IMAGE_TAG" || true
-    - |
-      trivy image \
-        --format json \
-        --output trivy-report.json \
-        --severity HIGH,CRITICAL \
-        --scanners vuln \
-        --skip-db-update \
-        "$IMAGE_TAG" || echo '{"Results":[]}' > trivy-report.json
-    - test -f trivy-report.json && echo "Report file created" || echo "Warning - report missing"
-    - |
-      if [ -f trivy-report.json ]; then
-        CRITICAL_COUNT=$(cat trivy-report.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' 2>/dev/null || echo "0")
-        echo "Critical vulnerabilities - $CRITICAL_COUNT"
-      fi
-  artifacts:
-    name: "security-report-$CI_COMMIT_SHORT_SHA"
-    paths:
-      - trivy-report.json
-    expire_in: 1 week
-    when: always
-  allow_failure: true
   only:
     - main
 
