@@ -1,11 +1,13 @@
 # Dependencies
 node_modules
 .bun-cache
+bun.lockb
 
 # Git
 .git
 .gitignore
 .gitlab-ci.yml
+.gitattributes
 
 # Docker files
 Dockerfile*
@@ -25,11 +27,14 @@ LICENSE
 # Environment and secrets
 .env
 .env.*
+!.env.example
 
 # Build outputs
 coverage*
 *.log
 logs/
+dist/
+build/
 
 # Kubernetes/Helm
 k8s/
@@ -38,9 +43,29 @@ helm-charts/
 # CI/CD
 .github/
 
+# Testing
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+test/
+tests/
+__tests__/
+
 # Misc
 Makefile
 .DS_Store
 *.swp
 *.swo
 *~
+.cache
+.tmp
+
+# TypeScript
+tsconfig.json
+tsconfig.*.json
+
+# ESLint
+.eslintrc*
+.eslintignore
+eslint.config.js
