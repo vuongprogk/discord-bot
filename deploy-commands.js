@@ -32,17 +32,19 @@ for (const folder of commandFolders) {
 // Construct and prepare an instance of the REST module
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
-rest
-  .put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [] })
-  .then(() => logger.info("Successfully deleted all application commands."))
-  .catch(logger.error);
-// and deploy your commands!
+
+
 (async () => {
   try {
     logger.info(
       `Started refreshing ${commands.length} application (/) commands.`
     );
-    const data = await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [] });
+    logger.info("Successfully deleted all application commands.");
+
+    await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: [] });
+    logger.info('Successfully deleted all guild commands.');
+    const data = await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
     logger.info(
       `Successfully reloaded ${data.length} application (/) commands.`
     );
